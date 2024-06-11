@@ -1,3 +1,6 @@
-*.dat
+os1.dat
+os2.dat
+audio.dat
+audio_filtrado.dat
 *.out
 *.wav

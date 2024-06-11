@@ -3,6 +3,8 @@
 #include <string.h>
 #include <math.h>
 
+#include <unistd.h>
+
 #define PI 3.14159265358979323846
 #define NUM_COEFICIENTES_FIR 1001
 
@@ -142,6 +144,15 @@ float* filtrado_iir(float* x_con_tonos, int N) {
   return y_iir2;
 }
 
+void graficar(const char* file_name) {
+  if(fork() == 0) {
+    // Este es el proceso hijo
+    execlp("gnuplot", "gnuplot", "-p", file_name, NULL);
+    perror("Error al ejecutar Gnuplot para cuantizacion_qi2.gp");
+    exit(1);
+  }
+}
+
 
 int main() {
 
@@ -170,7 +181,7 @@ int main() {
   }
 
   fn_a_archivo(x, "audio.dat", N);
-  fn_a_archivo(x_con_tonos, "audio_filtrado.dat", N);
+  fn_a_archivo(x_con_tonos, "x_tonos.dat", N);
   
   float* y_fir = filtrado_fir(x_con_tonos, N);
   fn_a_archivo(y_fir, "y_fir.dat", N);
@@ -179,7 +190,12 @@ int main() {
   fn_a_archivo(y_iir, "y_iir.dat", N);
 
   // Liberar memoria
-  free(x); free(os1); free(os2); free(x_con_tonos); free(y_fir);
+  free(x); free(os1); free(os2); free(x_con_tonos); free(y_fir); free(y_iir);
+
+  // graficamos
+  graficar("audio.gp");
+  graficar("osciladores.gp");
+  graficar("seniales_filtradas.gp");
 
   return 0;
 }

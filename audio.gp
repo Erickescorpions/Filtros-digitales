@@ -15,10 +15,10 @@ unset xlabel
 unset ylabel
 
 #------------- Graf 2 ----------------
-set title "Audio con tonos"
+set title "Audio con tonos | 259Hz y 594Hz"
 set xlabel "muestras"
-set ylabel "y(n)"
-plot "audio_filtrado.dat"
+set ylabel "x(n) + os1 + os2"
+plot "x_tonos.dat"
 
 unset title
 unset xlabel

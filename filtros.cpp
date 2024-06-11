@@ -2,11 +2,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <portaudio.h>
+#include <iostream>
 
 #define PI 3.14159265358979323846
 #define NUM_COEFICIENTES_FIR 1001
+#define SAMPLE_RATE (8000)
+#define NUM_CHANNELS (1)
+#define FRAMES_PER_BUFFER (64)
 
-float* leer_coeficientes_fir(char* file_name) {
+float* leer_coeficientes_fir(const char* file_name) {
   FILE* h1_file = fopen(file_name, "r");
   char buffer[10000];
   while (fgets(buffer, 10000, h1_file) != NULL);
@@ -52,14 +57,14 @@ void fn_a_archivo(float* fn, const char* nombre_archivo, int longitud) {
   FILE* archivo = fopen(nombre_archivo, "w");
 
   for(size_t i = 0; i < longitud; i++) {
-    fprintf(archivo, "%.6f\n", fn[i]);
+    fprintf(archivo, "%.9f\n", fn[i]);
     //printf("%f - %d\n", fn[i], i);
   }
 
   fclose(archivo);
 }
 
-float* leer_datos_audio(char* file_name, int N) {
+float* leer_datos_audio(const char* file_name, int N) {
   FILE* audio = fopen("audio.txt", "r");
   float* x = (float*)malloc(N * sizeof(float));
   // leemos los datos del archivo 
@@ -82,11 +87,11 @@ void filtrar_fir(float* x, float* y, float* h, int N) {
 }
 
 float* filtrado_fir(float* x_con_tonos, int N) {
-  float* y_fir1 = calloc(N, sizeof(float));
+  float* y_fir1 = (float*) calloc(N, sizeof(float));
   float* h1 = leer_coeficientes_fir("h1.dat");
   filtrar_fir(x_con_tonos, y_fir1, h1, N);
 
-  float* y_fir2 = calloc(N, sizeof(float));
+  float* y_fir2 = (float*) calloc(N, sizeof(float));
   float* h2 = leer_coeficientes_fir("h2.dat");
   filtrar_fir(y_fir1, y_fir2, h2, N);
 
@@ -107,7 +112,7 @@ void filtrar_iir(float* x, float* y, float* b, float* a, int N, int orden) {
 }
 
 float* filtrado_iir(float* x_con_tonos, int N) {
-  float* y_iir1 = calloc(N, sizeof(float));
+  float* y_iir1 = (float*) calloc(N, sizeof(float));
   // 1 Hz float a1[5] = {1, -3.91535267862329, 5.83027638967055, -3.91100622817273, 0.997781024105975};
   // 20 Hz float a1[5] = {1,	-3.87449923483303,	5.70896727769985,	-3.78936806974068,	0.956543676511205};
   // 2 Hz float a1[5] = {1,	-3.91318066566859,	5.82380756732881,	-3.90449740140184,	0.995566972065976};
@@ -122,7 +127,7 @@ float* filtrado_iir(float* x_con_tonos, int N) {
   float b1[5] = {0.992255101887975,	-3.88724500824937,	5.79166466572036,	-3.88724500824937,	0.992255101887975};
   filtrar_iir(x_con_tonos, y_iir1, b1, a1, N, 4);
 
-  float* y_iir2 = calloc(N, sizeof(float));
+  float* y_iir2 = (float*) calloc(N, sizeof(float));
   // 1 Hz float a2[5] = {1, -3.57056106470926, 5.18500612057761, -3.56659736896527, 0.997781024105974};
   // 20 Hz float a2[5] = {1,	-3.53330523420561,	5.07701640350459,	-3.45567084251169,	0.956543676511206};
   // 2 Hz float a2[5] = {1,	-3.56858032235355,	5.17925242263558,	-3.56066171888400,	0.995566972065975};
@@ -142,6 +147,22 @@ float* filtrado_iir(float* x_con_tonos, int N) {
   return y_iir2;
 }
 
+static int audioCallback(const void *inputBuffer, void *outputBuffer,
+                         unsigned long framesPerBuffer,
+                         const PaStreamCallbackTimeInfo *timeInfo,
+                         PaStreamCallbackFlags statusFlags,
+                         void *userData) {
+    float *audioData = (float*)userData;
+    float *out = (float*)outputBuffer;
+    unsigned int i;
+
+    for (i = 0; i < framesPerBuffer; i++) {
+        // Copiar los datos de la señal de audio al búfer de salida
+        *out++ = *audioData++;
+    }
+
+    return paContinue;
+}
 
 int main() {
 
@@ -178,8 +199,13 @@ int main() {
   float* y_iir = filtrado_iir(x_con_tonos, N);
   fn_a_archivo(y_iir, "y_iir.dat", N);
 
+  // Reproducir x
+  // Reproducir x_con_tonos
+  // Reproducir y_fir
+  // Reproducir y_iir
+
   // Liberar memoria
-  free(x); free(os1); free(os2); free(x_con_tonos); free(y_fir);
+  free(x); free(os1); free(os2); free(x_con_tonos); free(y_fir); free(y_iir);
 
   return 0;
 }
